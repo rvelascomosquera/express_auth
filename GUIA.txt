@@ -1,0 +1,222 @@
+PASO 1 INSTALACION 
+-------------------
+
+npm init - y
+npm i express
+npm i sequelize
+npm install --save pg pg-hstore # Postgres
+npm i dotenv
+npm install sequelize
+npm i nodemon sequelize-cli -D
+npm i jsonwebtoken // generar tokens
+npm i bcrypt // incriptar contraseñas
+
+
+PASO 2 CREACION DE ARCHIVOS
+-----------------------------
+touch .env
+touch .sequelizerc
+
+
+PASO 3 ESTRUCTURA DE CARPETAS 
+------------------------------
+
+APP
+  - server.js
+  - routes.js
+ controllers 
+ 
+	
+--------------------------------------
+PASO 4 CONFIGURACION SERVIDOR EXPRESS 
+--------------------------------------
+
+const express = require('express');
+const app = express();
+
+//settings 
+const PORT = process.env.PORT || 4000;
+
+//Midedlewares
+app.use(express.json());
+app.use(express.urlencoded({extended: false}));
+
+//Rutas
+app.use(require('./routes'))
+
+app.listen(PORT, function(){
+  console.log(`server port: http://localhost:${PORT}`)
+});
+
+
+PASO 5 CONFIGURACION ROUTER EXPRESS 
+--------------------------------------
+
+const express = require('express')
+const router = express.Router()
+
+router.get('/', (req, res)=> (
+  res.json({hello: "world"})
+));
+
+module.exports = router;
+
+
+PASO 6 CONFIG DE NODEMON 
+--------------------------------------
+
+"scripts": {
+    "dev": "nodemon app/server.js"
+},
+
+PASO 7 CORRER EL SERVIDOR Y PROBAR 
+--------------------------------------
+npm run dev 
+
+validar en url: http://localhost:4000
+
+
+--------------------------------------
+PASO 7 CONFIGURACION SEQUELIZE-CLI
+--------------------------------------
+terminal
+npx sequelize-cli init
+
+
+PASO 8 ORGANIZAR ARCHIVOS EN CARPETAS
+--------------------------------------
+
+CREAR CARPETA
+ app/database
+ - migrations
+ - seeders
+
+app/models
+app/controllers
+
+
+PASO 9 CONFIG ARCHIVO .sequelizerc (doc/sequelize/migrations)
+--------------------------------------
+
+const path = require('path');
+
+module.exports = {
+  'config': path.resolve('config', 'database.js'),
+  'models-path': path.resolve('app', 'models'),
+  'seeders-path': path.resolve('app', 'database', 'seeders'),
+  'migrations-path': path.resolve('app', 'database', 'migrations')
+};
+
+
+PASO 10 CONFIGURACION CONEXION BASES DE DATOS CON SEQUELIZE-CLI
+config/database.js
+--------------------------------------
+
+require ('dotenv').config()
+
+module.exports = {
+  //Configuracion base de datos
+  username: process.env.DB_USERNAME || "postgres",
+  password: process.env.DB_PASSWORD || null,
+  database: process.env.DB_DATABASE || "database_development",
+  host: process.env.DB_HOST || "127.0.0.1",
+  dialect: process.env.DB_DIALECT|| "postgres",
+
+  //configurar seeds
+  seederStorage: "sequelize",
+  seederStorageTableName: "seeds",
+
+  //configuracion de migraciones 
+  migrationStorage: "sequelize",
+  migrationsStorageTableName:"migrations"
+}
+
+
+
+PASO 11 CONFIGURACION VARIABLES DE ENTORNO (.env)
+--------------------------------------
+
+DB_USERNAME=postgres
+DB_PASSWORD=123456789
+DB_HOST=localhost
+DB_DATABASE=auth
+DB_DIALECT=postgres
+
+
+PASO 12 VALIDAR EN EL TERMINAL
+--------------------------------------
+
+npx sequelize-cli db:migrate
+
+--- 
+RESULTADO: 
+No migrations were executed, database schema was already up to date
+
+npx sequelize-cli db:seed:all
+
+esto crea dos tablas en nuestra base de datos
+- sequelizeMeta
+- seeds
+
+
+PASO 12 CONFIGURAR ARCHIVO PARA CONECTARSE DESDE EL SERVIDOR
+model/index.js
+-----------------------------------------------------------
+
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const Sequelize = require('sequelize');
+const basename = path.basename(__filename);
+const config = require('../../config/database') //ruta
+const db = {};
+
+//creamos nuestra conexion 
+let sequelize = new Sequelize(config.database, config.username, config.password, config);
+
+//asociaciones y vinculaciones 
+fs
+  .readdirSync(__dirname)
+  .filter(file => {
+    return (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-3) === '.js');
+  })
+  .forEach(file => {
+    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
+    db[model.name] = model;
+  });
+
+Object.keys(db).forEach(modelName => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
+  }
+});
+
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
+
+module.exports = db;
+
+
+PASO 13 CREAR LA TABLA USUARIO DESDE CONSOLA
+
+--------------------------------------
+-- creamos tabla usuario
+npx sequelize-cli model:generate --name user --attributes name:string,password:string,email:string
+
+-- genera en la carpeta model un archivo user.js y una migrations
+se puede configurar con valores para no permitir valores nulos  (allowNull: false) valores unico (unique:true).
+
+-- realizar la migracion para generar la tabla usuer en nuestra base de datos.
+npx sequelize-cli db:migrate 
+
+
+-------------------------------------------------------
+-------------------------------------------------------
+		CREAR LOGIN Y REGISTRO 
+------------------------------------------------------
+------------------------------------------------------
+
+PASO 1 controllers/ AuthControllr.js
+----------------------------------------------
+
